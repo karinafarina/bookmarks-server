@@ -1,6 +1,7 @@
 const express = require('express')
 const { bookmarks } = require('../store')
 const bookmarkRouter = express.Router()
+const { isWebUri } = require('valid-url')
 const uuid = require('uuid/v4')
 const bodyParser = express.json()
 const logger = require('../logger')
@@ -20,8 +21,8 @@ bookmarkRouter
         .status(400)
         .send('Invalid data');
     }
-    if (!url) {
-      logger.error('Url is required');
+    if (!isWebUri(url)) {
+      logger.error('Invalid URL');
       return res
         .status(400)
         .send('Invalid data');
@@ -32,11 +33,11 @@ bookmarkRouter
         .status(400)
         .send('Invalid data');
     }
-    if (!rating) {
-      logger.error('Rating is required');
+    if (!Number.isInteger(rating) || rating < 0 || rating > 5) {
+      logger.error('Invalid rating');
       return res
         .status(400)
-        .send('Invalid data');
+        .send('Rating must be a number between 0 and 5');
     }
     //get an id
     const id = uuid();
@@ -70,7 +71,7 @@ bookmarkRouter
         .status(404)
         .send('Bookmark not found');
     }
-    res.json(card);
+    res.json(bookmark);
   })
   .delete((req, res) => {
     const { id } = req.params;
