@@ -21,7 +21,7 @@ describe('Bookmarks Enpoints', function() {
   afterEach('cleanup', () => db('bookmarks').truncate())
 
   describe(`Unauthorized requests`, () => {
-    const testBookmarks = fixtures.makeBookmarksArray()
+    const testBookmarks = makeBookmarksArray()
 
     beforeEach('insert bookmarks', () => {
     return db
@@ -31,18 +31,73 @@ describe('Bookmarks Enpoints', function() {
 
   it(`responds with 401 Unauthorized for GET /bookmarks`, () => {
     return supertest(app)
-      .get('/bookmarks')
-      .expect(401, { error: 'Unauthorized request' })
+    .get('/bookmarks')
+    .expect(401, { error: 'Unauthorized request' })
   })
-  
 
-  context('Given there are bookmarks in the database', () => {
-    const testBookmarks = makeBookmarksArray()
+    it(`responds with 401 Unauthorized for GET /bookmarks/:id`, () => {
+      const secondBookmark = testBookmarks[1]
+      return supertest(app)
+        .get(`/bookmarks/${secondBookmark.id}`)
+        .expect(401, { error: 'Unauthorized request' })
+    })
+  })
 
-    beforeEach('inser articles', () => {
-      return db
-        .into('bookmarks')
-        .insert(testBookmarks)
+  describe('GET /bookmarks', () => {
+    context(`Given no bookmarks`, () => {
+      it(`responds with 200 and an empty list`, () => {
+        return supertest(app)
+          .get('/bookmarks')
+          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+          .expect(200, [])
+      })
+    })
+    context('Given there are bookmarks in the database', () => {
+      const testBookmarks = makeBookmarksArray()
+
+      beforeEach('inser bookmarks', () => {
+        return db
+          .into('bookmarks')
+          .insert(testBookmarks)
+      })
+
+      it('gets the bookmarks fro the store', () => {
+        return supertest(app)
+          .get('/bookmarks')
+          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+          .expect(200, testBookmarks)
+      })
+    })
+  })
+  describe('GET /bookmarks/:id', () => {
+    context(`Given no bookmarks`, () => {
+      it(`responds 404 when bookmark doesn't exist`, () => {
+        return supertest(app)
+          .get(`/bookmarks/123`)
+          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+          .expect(404, {
+            error: { message: `Bookmark Not Found` }
+          })
+      })
+    })
+
+    context('Given there are bookmarks in the database', () => {
+      const testBookmarks = makeBookmarksArray()
+
+      beforeEach('insert bookmarks', () => {
+        return db
+          .into('bookmarks')
+          .insert(testBookmarks)
+      })
+
+      it('responds with 200 and the specified bookmark', () => {
+        bookmarkId = 2
+        const expectedBookmark = testMookmarks[bookmarkId -1]
+        return supertest(app)
+          .get(`/bookmarks/${bookmarkId}`)
+          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+          .expect(200, expectedBookmark)
+      })
     })
   })
 })
