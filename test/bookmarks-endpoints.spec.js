@@ -1,4 +1,3 @@
-const { expect } = require('chai')
 const knex = require('knex')
 const app = require('../src/app')
 const { makeBookmarksArray } = require('./bookmarks.fixtures')
@@ -48,7 +47,6 @@ describe('Bookmarks Enpoints', function() {
       it(`responds with 200 and an empty list`, () => {
         return supertest(app)
           .get('/bookmarks')
-          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .expect(200, [])
       })
     })
@@ -61,10 +59,9 @@ describe('Bookmarks Enpoints', function() {
           .insert(testBookmarks)
       })
 
-      it('gets the bookmarks fro the store', () => {
+      it('gets the bookmarks from the store', () => {
         return supertest(app)
           .get('/bookmarks')
-          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .expect(200, testBookmarks)
       })
     })
@@ -72,9 +69,9 @@ describe('Bookmarks Enpoints', function() {
   describe('GET /bookmarks/:id', () => {
     context(`Given no bookmarks`, () => {
       it(`responds 404 when bookmark doesn't exist`, () => {
+        const bookmarkId = 12345
         return supertest(app)
-          .get(`/bookmarks/123`)
-          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+          .get(`/bookmarks/${bookmarkId}`)
           .expect(404, {
             error: { message: `Bookmark Not Found` }
           })
@@ -92,10 +89,9 @@ describe('Bookmarks Enpoints', function() {
 
       it('responds with 200 and the specified bookmark', () => {
         bookmarkId = 2
-        const expectedBookmark = testMookmarks[bookmarkId -1]
+        const expectedBookmark = testBookmarks[bookmarkId -1]
         return supertest(app)
           .get(`/bookmarks/${bookmarkId}`)
-          .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .expect(200, expectedBookmark)
       })
     })
