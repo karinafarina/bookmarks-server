@@ -1,6 +1,6 @@
 require('dotenv').config()
 const express = require('express')
-const { NODE_ENV } = require('./config')
+const { API_TOKEN, NODE_ENV } = require('./config')
 const logger = require('./logger')
 const morgan = require('morgan')
 const cors = require('cors')
@@ -10,10 +10,9 @@ const bookmarkRouter = require('./bookmarks/bookmarks-router')
 const app = express()
 
 app.use(function validateBearerToken(req, res, next) {
-  const apiToken = process.env.API_TOKEN
   const authToken = req.get('Authorization')
 
-  if (!authToken || authToken.split(' ')[1] !== apiToken) {
+  if (!authToken || authToken.split(' ')[1] !== API_TOKEN) {
     logger.error(`Unauthorized request to path: ${req.path}`);
     return res.status(401).json({ error: 'Unauthorized request' })
   }
@@ -21,11 +20,9 @@ app.use(function validateBearerToken(req, res, next) {
   next()
 })
 
-const morganOption = (NODE_ENV === 'production')
-  ?'tiny'
-  : 'common';
-                            
-app.use(morgan(morganOption))
+app.use(morgan((NODE_ENV === 'production') ? 'tiny' : 'common', {
+  skip: () => NODE_ENV === 'test'
+}))
 app.use(helmet())
 app.use(cors())
 app.use(express.json());
