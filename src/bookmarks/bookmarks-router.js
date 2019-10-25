@@ -1,5 +1,6 @@
 const express = require('express')
 const xss = require('xss')
+const path = require('path')
 const { bookmarks } = require('../store')
 const bookmarkRouter = express.Router()
 const { isWebUri } = require('valid-url')
@@ -17,20 +18,22 @@ const serializeBookmark = bookmark => ({
 })
 
 bookmarkRouter
-  .route('/bookmarks')
+  .route('/')
+  
   .get((req, res, next) => {
-    const knexInstance = req.app.get('db')
-    BookmarksService.getAllBookmarks(knexInstance)
+    BookmarksService.getAllBookmarks(req.app.get('db'))
       .then(bookmarks => {
-        res.json(serializeBookmark(bookmarks))
+        res.json(bookmarks.map(serializeBookmark))
       })
       .catch(next)
   })
+
   .post(bodyParser, (req, res, next) => {
-    const { title, url, description, rating } = req.body;
+    const { title, url, description, rating } = req.body
+    const newBookmark = { title, url, description, rating }
 
     for( const field of ['title', 'url', 'rating']) {
-      if(!req.body[field]) {
+      if(!newBookmark[field]) {
         logger.error(`${field} is required`)
         return res.status(400).send({
           error: { message: `'${field}' is required` }
@@ -52,29 +55,24 @@ bookmarkRouter
           error: { message: `'rating' must be a number between 0 and 5` }
       })
     }
-    //get an id
-    const id = uuid();
-    const bookmark = {
-      id,
-      title,
-      url,
-      description,
-      rating
-    };
-    bookmarks.push(bookmark);
 
-    logger.info(`Bookmark with id ${id} created`);
-
-    res
+    BookmarksService.insertBookmark(
+      req.app.get('db'),
+      newBookmark
+    )
+    .then(bookmark => {
+      logger.info(`Bookmark with id ${bookmark.id} created`)
+      res
       .status(201)
-      .location(`http://localhost:8000/bookmarks/${id}`)
+      .location(path.posix.join(req.originalUrl, `/${bookmark.id}`))
       .json(serializeBookmark(bookmark))
-  })
+    })
+    .catch(next)
+})
 
 bookmarkRouter
-  .route('/bookmarks/:bookmark_id')
+  .route('/:bookmark_id')
   .all((req, res, next) => {
-    console.log('params', req.params)
     const knexInstance = req.app.get('db')
     const { bookmark_id } = req.params;
     BookmarksService.getById(knexInstance, bookmark_id)
@@ -82,7 +80,7 @@ bookmarkRouter
         if(!bookmark) {
           logger.error(`Bookmark with id ${bookmark_id} not found.`)
           return res.status(404).json({
-            error: { message: `Bookmark not found` }
+            error: { message: `Bookmark doesn't exist` }
           })
         }
         res.bookmark = bookmark
@@ -104,6 +102,31 @@ bookmarkRouter
         res.status(204).end()
       })
       .catch(next)
+  })
+
+  .patch(bodyParser, (req, res, next) => {
+    const { title, url, description, rating } = req.body
+    const bookmarkToUpdate = { title, url, description, rating }
+    
+    const numberOfValues = Object.values(bookmarkToUpdate).filter(Boolean).length
+    console.log('number of  valules: ', numberOfValues)
+      if(numberOfValues === 0) {
+        return res.status(400).json({
+          error: {
+            message: `Request body must contain either 'title', 'url', 'description', or 'rating'`
+          }
+        })
+      }
+    
+    BookmarksService.updateBookmark(
+      req.app.get('db'),
+      req.params.bookmark_id,
+      bookmarkToUpdate
+    )
+    .then(numRowsAffected => {
+      res.status(204).end()
+    })
+    .catch(next)
   })
 
   module.exports = bookmarkRouter
