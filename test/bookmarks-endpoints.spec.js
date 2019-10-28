@@ -316,14 +316,13 @@ describe('Bookmarks Enpoints', function() {
             fieldToIgnore: 'should not be in GET response'
           })
           .expect(204)
-          .then(res => 
+          .then(res =>  
             supertest(app)
               .get(`/api/bookmarks/${idToUpdate}`)
               .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
               .expect(expectedBookmark)
             )
       })
-
     })
   })
 })
