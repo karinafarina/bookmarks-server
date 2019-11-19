@@ -9,6 +9,13 @@ const bookmarkRouter = require('./bookmarks/bookmarks-router')
 
 const app = express()
 
+app.use(morgan((NODE_ENV === 'production') ? 'tiny' : 'common', {
+  skip: () => NODE_ENV === 'test'
+}))
+app.use(helmet())
+app.use(cors({credentials: true,}))
+app.use(express.json());
+
 app.use(function validateBearerToken(req, res, next) {
   const authToken = req.get('Authorization')
   console.log('api  is: ', API_TOKEN)
@@ -22,13 +29,6 @@ app.use(function validateBearerToken(req, res, next) {
   // move to the next middleware
   next()
 })
-
-app.use(morgan((NODE_ENV === 'production') ? 'tiny' : 'common', {
-  skip: () => NODE_ENV === 'test'
-}))
-app.use(helmet())
-app.use(cors({credentials: true,}))
-app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Hello Express.')

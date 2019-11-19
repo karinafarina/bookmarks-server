@@ -109,8 +109,8 @@ bookmarkRouter
     const bookmarkToUpdate = { title, url, description, rating }
     
     const numberOfValues = Object.values(bookmarkToUpdate).filter(Boolean).length
-    console.log('number of  valules: ', numberOfValues)
       if(numberOfValues === 0) {
+        logger.error(`Invalid update without required fields`)
         return res.status(400).json({
           error: {
             message: `Request body must contain either 'title', 'url', 'description', or 'rating'`
